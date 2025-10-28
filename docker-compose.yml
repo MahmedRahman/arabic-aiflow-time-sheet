@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: timesheet-app
+    ports:
+      - "8000:80"
+    volumes:
+      - ./storage:/var/www/html/storage
+      - ./database:/var/www/html/database
+      - ./.env:/var/www/html/.env
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_CONNECTION=sqlite
+      - DB_DATABASE=/var/www/html/database/database.sqlite
+    restart: unless-stopped
+    networks:
+      - timesheet-network
+
+# Optional: Add a database service if you want to use MySQL/PostgreSQL instead of SQLite
+# mysql:
+#   image: mysql:8.0
+#   container_name: timesheet-mysql
+#   environment:
+#     MYSQL_ROOT_PASSWORD: root
+#     MYSQL_DATABASE: timesheet
+#     MYSQL_USER: timesheet
+#     MYSQL_PASSWORD: password
+#   ports:
+#     - "3306:3306"
+#   volumes:
+#     - mysql_data:/var/lib/mysql
+#   networks:
+#     - timesheet-network
+
+networks:
+  timesheet-network:
+    driver: bridge
+
+# volumes:
+#   mysql_data:
