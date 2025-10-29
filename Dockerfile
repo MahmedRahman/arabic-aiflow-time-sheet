@@ -47,34 +47,7 @@ RUN chown -R www-data:www-data /var/www/html \
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Create .env file if it doesn't exist
-RUN if [ ! -f .env ]; then \
-    if [ -f .env.example ]; then \
-    cp .env.example .env; \
-    else \
-    echo "APP_NAME=TimeSheet" > .env; \
-    echo "APP_ENV=production" >> .env; \
-    echo "APP_DEBUG=false" >> .env; \
-    echo "APP_URL=http://localhost" >> .env; \
-    echo "DB_CONNECTION=sqlite" >> .env; \
-    echo "DB_DATABASE=/var/www/html/database/database.sqlite" >> .env; \
-    fi; \
-    fi
 
-# Generate application key
-RUN php artisan key:generate
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=80"]
 
-# Create SQLite database file
-RUN touch database/database.sqlite
-
-# Run migrations and seeders
-RUN php artisan migrate --force || true \
-    && php artisan db:seed --force || true
-
-
-
-# Expose port 80
 EXPOSE 80
-
-# Start Apache
-CMD ["apache2-foreground"]
