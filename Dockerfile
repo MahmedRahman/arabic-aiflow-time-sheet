@@ -71,6 +71,8 @@ RUN touch database/database.sqlite
 RUN php artisan migrate --force || true \
     && php artisan db:seed --force || true
 
+
+
 # Expose port 80
 EXPOSE 80
 
