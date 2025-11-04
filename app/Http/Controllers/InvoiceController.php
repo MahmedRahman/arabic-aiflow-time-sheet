@@ -36,13 +36,13 @@ class InvoiceController extends Controller
             'project_id' => 'nullable|exists:projects,id',
             'issue_date' => 'required|date',
             'due_date' => 'required|date|after:issue_date',
-            'tax_rate' => 'nullable|numeric|min:0|max:100',
             'notes' => 'nullable|string',
             'terms' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string',
-            'items.*.quantity' => 'required|numeric|min:0.01',
-            'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.amount' => 'nullable|numeric|min:0',
+            'items.*.quantity' => 'nullable|numeric|min:0.01',
+            'items.*.unit_price' => 'nullable|numeric|min:0',
         ]);
 
         DB::beginTransaction();
@@ -53,12 +53,17 @@ class InvoiceController extends Controller
             // حساب المبالغ
             $subtotal = 0;
             foreach ($request->items as $item) {
-                $subtotal += $item['quantity'] * $item['unit_price'];
+                // إذا كان هناك مبلغ مباشر، استخدمه
+                if (isset($item['amount']) && $item['amount'] > 0) {
+                    $subtotal += $item['amount'];
+                } else {
+                    // حساب من الساعات وسعر الساعة
+                    $subtotal += ($item['quantity'] ?? 1) * ($item['unit_price'] ?? 0);
+                }
             }
             
-            $taxRate = $request->tax_rate ?? 0;
-            $taxAmount = ($subtotal * $taxRate) / 100;
-            $totalAmount = $subtotal + $taxAmount;
+            // لا يوجد ضريبة - المجموع الإجمالي = المجموع الفرعي
+            $totalAmount = $subtotal;
 
             // إنشاء الفاتورة
             $invoice = Invoice::create([
@@ -68,8 +73,8 @@ class InvoiceController extends Controller
                 'issue_date' => $request->issue_date,
                 'due_date' => $request->due_date,
                 'subtotal' => $subtotal,
-                'tax_rate' => $taxRate,
-                'tax_amount' => $taxAmount,
+                'tax_rate' => 0,
+                'tax_amount' => 0,
                 'total_amount' => $totalAmount,
                 'status' => 'draft',
                 'notes' => $request->notes,
@@ -78,12 +83,24 @@ class InvoiceController extends Controller
 
             // إضافة عناصر الفاتورة
             foreach ($request->items as $item) {
+                // حساب المجموع للعنصر
+                $itemTotal = 0;
+                if (isset($item['amount']) && $item['amount'] > 0) {
+                    $itemTotal = $item['amount'];
+                    $quantity = 1;
+                    $unitPrice = $item['amount'];
+                } else {
+                    $quantity = $item['quantity'] ?? 1;
+                    $unitPrice = $item['unit_price'] ?? 0;
+                    $itemTotal = $quantity * $unitPrice;
+                }
+                
                 InvoiceItem::create([
                     'invoice_id' => $invoice->id,
                     'description' => $item['description'],
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                    'total' => $item['quantity'] * $item['unit_price'],
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'total' => $itemTotal,
                 ]);
             }
 
@@ -120,13 +137,13 @@ class InvoiceController extends Controller
             'project_id' => 'nullable|exists:projects,id',
             'issue_date' => 'required|date',
             'due_date' => 'required|date|after:issue_date',
-            'tax_rate' => 'nullable|numeric|min:0|max:100',
             'notes' => 'nullable|string',
             'terms' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string',
-            'items.*.quantity' => 'required|numeric|min:0.01',
-            'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.amount' => 'nullable|numeric|min:0',
+            'items.*.quantity' => 'nullable|numeric|min:0.01',
+            'items.*.unit_price' => 'nullable|numeric|min:0',
         ]);
 
         DB::beginTransaction();
@@ -134,12 +151,17 @@ class InvoiceController extends Controller
             // حساب المبالغ
             $subtotal = 0;
             foreach ($request->items as $item) {
-                $subtotal += $item['quantity'] * $item['unit_price'];
+                // إذا كان هناك مبلغ مباشر، استخدمه
+                if (isset($item['amount']) && $item['amount'] > 0) {
+                    $subtotal += $item['amount'];
+                } else {
+                    // حساب من الساعات وسعر الساعة
+                    $subtotal += $item['quantity'] * $item['unit_price'];
+                }
             }
             
-            $taxRate = $request->tax_rate ?? 0;
-            $taxAmount = ($subtotal * $taxRate) / 100;
-            $totalAmount = $subtotal + $taxAmount;
+            // لا يوجد ضريبة - المجموع الإجمالي = المجموع الفرعي
+            $totalAmount = $subtotal;
 
             // تحديث الفاتورة
             $invoice->update([
@@ -148,8 +170,8 @@ class InvoiceController extends Controller
                 'issue_date' => $request->issue_date,
                 'due_date' => $request->due_date,
                 'subtotal' => $subtotal,
-                'tax_rate' => $taxRate,
-                'tax_amount' => $taxAmount,
+                'tax_rate' => 0,
+                'tax_amount' => 0,
                 'total_amount' => $totalAmount,
                 'notes' => $request->notes,
                 'terms' => $request->terms,
@@ -158,12 +180,24 @@ class InvoiceController extends Controller
             // حذف العناصر القديمة وإضافة الجديدة
             $invoice->items()->delete();
             foreach ($request->items as $item) {
+                // حساب المجموع للعنصر
+                $itemTotal = 0;
+                if (isset($item['amount']) && $item['amount'] > 0) {
+                    $itemTotal = $item['amount'];
+                    $quantity = 1;
+                    $unitPrice = $item['amount'];
+                } else {
+                    $quantity = $item['quantity'] ?? 1;
+                    $unitPrice = $item['unit_price'] ?? 0;
+                    $itemTotal = $quantity * $unitPrice;
+                }
+                
                 InvoiceItem::create([
                     'invoice_id' => $invoice->id,
                     'description' => $item['description'],
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                    'total' => $item['quantity'] * $item['unit_price'],
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'total' => $itemTotal,
                 ]);
             }
 

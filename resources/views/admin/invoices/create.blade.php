@@ -78,41 +78,72 @@
                         </div>
                     </div>
                     
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="tax_rate" class="form-label">معدل الضريبة (%)</label>
-                            <input type="number" class="form-control @error('tax_rate') is-invalid @enderror" 
-                                   id="tax_rate" name="tax_rate" value="{{ old('tax_rate', 0) }}" 
-                                   min="0" max="100" step="0.01">
-                            @error('tax_rate')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
-                    
                     <!-- عناصر الفاتورة -->
                     <div class="mb-4">
-                        <h5>عناصر الفاتورة</h5>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">عناصر الفاتورة</h5>
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check" name="entry_type" id="entry_type_amount" value="amount" checked>
+                                <label class="btn btn-outline-primary" for="entry_type_amount">
+                                    <i class="fas fa-money-bill me-1"></i>إدخال المبلغ مباشرة
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="entry_type" id="entry_type_hours" value="hours">
+                                <label class="btn btn-outline-primary" for="entry_type_hours">
+                                    <i class="fas fa-clock me-1"></i>ساعات العمل
+                                </label>
+                            </div>
+                        </div>
+                        
                         <div id="invoice-items">
-                            <div class="invoice-item row mb-3">
-                                <div class="col-md-5">
+                            <div class="invoice-item row mb-3" data-entry-type="amount">
+                                <div class="col-md-6">
                                     <label class="form-label">الوصف <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" name="items[0][description]" 
                                            placeholder="وصف الخدمة أو المنتج" required>
                                 </div>
+                                <div class="col-md-5">
+                                    <label class="form-label">المبلغ <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control item-amount" name="items[0][amount]" 
+                                           value="0" min="0" step="0.01" required>
+                                    <input type="hidden" class="form-control quantity" name="items[0][quantity]" value="1">
+                                    <input type="hidden" class="form-control unit-price" name="items[0][unit_price]" value="0">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-item" disabled>
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="invoice-item row mb-3 d-none" data-entry-type="hours">
+                                <div class="col-md-4">
+                                    <label class="form-label">الوصف <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="items[0][description]" 
+                                           placeholder="وصف العمل">
+                                </div>
                                 <div class="col-md-2">
-                                    <label class="form-label">الكمية <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control quantity" name="items[0][quantity]" 
-                                           value="1" min="0.01" step="0.01" required>
+                                    <label class="form-label">عدد الساعات <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control item-hours" name="items[0][hours]" 
+                                           value="0" min="0" step="0.01">
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label">سعر الوحدة <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control unit-price" name="items[0][unit_price]" 
-                                           value="0" min="0" step="0.01" required>
+                                    <label class="form-label">سعر الساعة <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control item-hourly-rate" name="items[0][hourly_rate]" 
+                                           value="0" min="0" step="0.01">
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">المجموع</label>
-                                    <input type="text" class="form-control total" readonly>
+                                    <input type="text" class="form-control item-total" readonly>
+                                    <input type="hidden" class="form-control quantity" name="items[0][quantity]" value="1">
+                                    <input type="hidden" class="form-control unit-price" name="items[0][unit_price]" value="0">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-item" disabled>
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -146,12 +177,8 @@
                     <div class="alert alert-info" id="calculation-preview">
                         <h6><i class="fas fa-calculator me-2"></i>معاينة الحساب:</h6>
                         <div class="row">
-                            <div class="col-md-6">
-                                <p><strong>المجموع الفرعي:</strong> <span id="subtotal">0.00</span> ج.م</p>
-                                <p><strong>الضريبة:</strong> <span id="tax-amount">0.00</span> ج.م</p>
-                            </div>
-                            <div class="col-md-6">
-                                <p><strong>المجموع الإجمالي:</strong> <span id="total-amount">0.00</span> ج.م</p>
+                            <div class="col-md-12 text-center">
+                                <p class="mb-0"><strong>المجموع الإجمالي:</strong> <span id="total-amount" class="fs-4 text-primary">0.00</span> ج.م</p>
                             </div>
                         </div>
                     </div>
@@ -187,7 +214,8 @@
                     <h6><i class="fas fa-lightbulb me-2"></i>نصائح:</h6>
                     <ul class="mb-0">
                         <li>يمكنك إضافة عدة عناصر للفاتورة</li>
-                        <li>سيتم حساب الضريبة تلقائياً</li>
+                        <li>يمكنك إدخال المبلغ مباشرة أو استخدام الساعات وسعر الساعة</li>
+                        <li>سيتم حساب المجموع الإجمالي تلقائياً</li>
                         <li>يمكنك ربط الفاتورة بمشروع محدد</li>
                     </ul>
                 </div>
@@ -202,6 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const projectSelect = document.getElementById('project_id');
     const addItemBtn = document.getElementById('add-item');
     const invoiceItems = document.getElementById('invoice-items');
+    const entryTypeRadios = document.querySelectorAll('input[name="entry_type"]');
     let itemIndex = 1;
 
     // فلترة المشاريع حسب العميل
@@ -221,93 +250,227 @@ document.addEventListener('DOMContentLoaded', function() {
         projectSelect.value = '';
     });
 
+    // تغيير نوع الإدخال
+    entryTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const entryType = this.value;
+            const items = document.querySelectorAll('.invoice-item');
+            
+            items.forEach(item => {
+                if (item.dataset.entryType === entryType) {
+                    item.classList.remove('d-none');
+                    // إظهار/إخفاء الحقول المطلوبة
+                    if (entryType === 'amount') {
+                        const amountInput = item.querySelector('.item-amount');
+                        if (amountInput) {
+                            amountInput.required = true;
+                        }
+                        const hoursInput = item.querySelector('.item-hours');
+                        const hourlyRateInput = item.querySelector('.item-hourly-rate');
+                        if (hoursInput) hoursInput.required = false;
+                        if (hourlyRateInput) hourlyRateInput.required = false;
+                    } else {
+                        const hoursInput = item.querySelector('.item-hours');
+                        const hourlyRateInput = item.querySelector('.item-hourly-rate');
+                        if (hoursInput) hoursInput.required = true;
+                        if (hourlyRateInput) hourlyRateInput.required = true;
+                        const amountInput = item.querySelector('.item-amount');
+                        if (amountInput) amountInput.required = false;
+                    }
+                } else {
+                    item.classList.add('d-none');
+                    // إلغاء required للحقول المخفية
+                    const hiddenInputs = item.querySelectorAll('input[required]');
+                    hiddenInputs.forEach(input => {
+                        if (input.type !== 'hidden') {
+                            input.required = false;
+                        }
+                    });
+                }
+            });
+            
+            calculateInvoiceTotal();
+        });
+    });
+
     // إضافة عنصر جديد
     addItemBtn.addEventListener('click', function() {
+        const activeEntryType = document.querySelector('input[name="entry_type"]:checked').value;
         const newItem = document.createElement('div');
         newItem.className = 'invoice-item row mb-3';
-        newItem.innerHTML = `
-            <div class="col-md-5">
-                <label class="form-label">الوصف <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="items[${itemIndex}][description]" 
-                       placeholder="وصف الخدمة أو المنتج" required>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">الكمية <span class="text-danger">*</span></label>
-                <input type="number" class="form-control quantity" name="items[${itemIndex}][quantity]" 
-                       value="1" min="0.01" step="0.01" required>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">سعر الوحدة <span class="text-danger">*</span></label>
-                <input type="number" class="form-control unit-price" name="items[${itemIndex}][unit_price]" 
-                       value="0" min="0" step="0.01" required>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">المجموع</label>
-                <div class="d-flex">
-                    <input type="text" class="form-control total" readonly>
-                    <button type="button" class="btn btn-outline-danger btn-sm ms-1 remove-item">
+        newItem.setAttribute('data-entry-type', activeEntryType);
+        
+        if (activeEntryType === 'amount') {
+            newItem.innerHTML = `
+                <div class="col-md-6">
+                    <label class="form-label">الوصف <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="items[${itemIndex}][description]" 
+                           placeholder="وصف الخدمة أو المنتج" required>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">المبلغ <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control item-amount" name="items[${itemIndex}][amount]" 
+                           value="0" min="0" step="0.01" required>
+                    <input type="hidden" class="form-control quantity" name="items[${itemIndex}][quantity]" value="1">
+                    <input type="hidden" class="form-control unit-price" name="items[${itemIndex}][unit_price]" value="0">
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-item">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
-            </div>
-        `;
+            `;
+        } else {
+            newItem.innerHTML = `
+                <div class="col-md-4">
+                    <label class="form-label">الوصف <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="items[${itemIndex}][description]" 
+                           placeholder="وصف العمل" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">عدد الساعات <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control item-hours" name="items[${itemIndex}][hours]" 
+                           value="0" min="0" step="0.01" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">سعر الساعة <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control item-hourly-rate" name="items[${itemIndex}][hourly_rate]" 
+                           value="0" min="0" step="0.01" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">المجموع</label>
+                    <input type="text" class="form-control item-total" readonly>
+                    <input type="hidden" class="form-control quantity" name="items[${itemIndex}][quantity]" value="1">
+                    <input type="hidden" class="form-control unit-price" name="items[${itemIndex}][unit_price]" value="0">
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-item">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+        }
         
         invoiceItems.appendChild(newItem);
         itemIndex++;
         
         // إضافة مستمعي الأحداث للعنصر الجديد
         addItemEventListeners(newItem);
+        
+        // تفعيل زر الحذف للعناصر الجديدة
+        const removeBtns = document.querySelectorAll('.remove-item');
+        if (removeBtns.length > 1) {
+            removeBtns.forEach(btn => btn.disabled = false);
+        }
     });
 
     // إضافة مستمعي الأحداث للعنصر
     function addItemEventListeners(item) {
-        const quantityInput = item.querySelector('.quantity');
-        const unitPriceInput = item.querySelector('.unit-price');
-        const totalInput = item.querySelector('.total');
+        const entryType = item.dataset.entryType;
         const removeBtn = item.querySelector('.remove-item');
-
-        function calculateTotal() {
-            const quantity = parseFloat(quantityInput.value) || 0;
-            const unitPrice = parseFloat(unitPriceInput.value) || 0;
-            const total = quantity * unitPrice;
-            totalInput.value = total.toFixed(2);
-            calculateInvoiceTotal();
-        }
-
-        quantityInput.addEventListener('input', calculateTotal);
-        unitPriceInput.addEventListener('input', calculateTotal);
         
-        removeBtn.addEventListener('click', function() {
-            item.remove();
-            calculateInvoiceTotal();
-        });
+        if (entryType === 'amount') {
+            const amountInput = item.querySelector('.item-amount');
+            const quantityInput = item.querySelector('.quantity');
+            const unitPriceInput = item.querySelector('.unit-price');
+            
+            amountInput.addEventListener('input', function() {
+                const amount = parseFloat(this.value) || 0;
+                quantityInput.value = 1;
+                unitPriceInput.value = amount;
+                calculateInvoiceTotal();
+            });
+        } else {
+            const hoursInput = item.querySelector('.item-hours');
+            const hourlyRateInput = item.querySelector('.item-hourly-rate');
+            const totalInput = item.querySelector('.item-total');
+            const quantityInput = item.querySelector('.quantity');
+            const unitPriceInput = item.querySelector('.unit-price');
+            
+            function calculateHoursTotal() {
+                const hours = parseFloat(hoursInput.value) || 0;
+                const hourlyRate = parseFloat(hourlyRateInput.value) || 0;
+                const total = hours * hourlyRate;
+                totalInput.value = total.toFixed(2);
+                quantityInput.value = hours;
+                unitPriceInput.value = hourlyRate;
+                calculateInvoiceTotal();
+            }
+            
+            hoursInput.addEventListener('input', calculateHoursTotal);
+            hourlyRateInput.addEventListener('input', calculateHoursTotal);
+        }
+        
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                // لا تسمح بحذف العنصر إذا كان واحد فقط
+                const allItems = document.querySelectorAll('.invoice-item:not(.d-none)');
+                if (allItems.length > 1) {
+                    item.remove();
+                    calculateInvoiceTotal();
+                    
+                    // إذا بقي عنصر واحد فقط، تعطيل زر الحذف
+                    const remainingItems = document.querySelectorAll('.invoice-item:not(.d-none)');
+                    if (remainingItems.length === 1) {
+                        const lastRemoveBtn = remainingItems[0].querySelector('.remove-item');
+                        if (lastRemoveBtn) {
+                            lastRemoveBtn.disabled = true;
+                        }
+                    }
+                }
+            });
+        }
     }
 
     // حساب المجموع الإجمالي للفاتورة
     function calculateInvoiceTotal() {
-        const items = document.querySelectorAll('.invoice-item');
-        let subtotal = 0;
+        const activeEntryType = document.querySelector('input[name="entry_type"]:checked').value;
+        const items = document.querySelectorAll('.invoice-item:not(.d-none)');
+        let totalAmount = 0;
         
         items.forEach(item => {
-            const totalInput = item.querySelector('.total');
-            const total = parseFloat(totalInput.value) || 0;
-            subtotal += total;
+            if (activeEntryType === 'amount') {
+                const amountInput = item.querySelector('.item-amount');
+                const amount = parseFloat(amountInput.value) || 0;
+                totalAmount += amount;
+            } else {
+                const totalInput = item.querySelector('.item-total');
+                const total = parseFloat(totalInput.value) || 0;
+                totalAmount += total;
+            }
         });
         
-        const taxRate = parseFloat(document.getElementById('tax_rate').value) || 0;
-        const taxAmount = (subtotal * taxRate) / 100;
-        const totalAmount = subtotal + taxAmount;
-        
-        document.getElementById('subtotal').textContent = subtotal.toFixed(2);
-        document.getElementById('tax-amount').textContent = taxAmount.toFixed(2);
         document.getElementById('total-amount').textContent = totalAmount.toFixed(2);
     }
 
-    // إضافة مستمعي الأحداث للعنصر الأول
-    addItemEventListeners(document.querySelector('.invoice-item'));
+    // إضافة مستمعي الأحداث للعناصر الموجودة
+    document.querySelectorAll('.invoice-item').forEach(item => {
+        addItemEventListeners(item);
+    });
     
-    // مستمع لمعدل الضريبة
-    document.getElementById('tax_rate').addEventListener('input', calculateInvoiceTotal);
+    // حساب أولي
+    calculateInvoiceTotal();
+    
+    // تفعيل/تعطيل أزرار الحذف حسب عدد العناصر
+    function updateRemoveButtons() {
+        const allItems = document.querySelectorAll('.invoice-item:not(.d-none)');
+        const removeBtns = document.querySelectorAll('.remove-item');
+        
+        if (allItems.length === 1) {
+            removeBtns.forEach(btn => btn.disabled = true);
+        } else {
+            removeBtns.forEach(btn => btn.disabled = false);
+        }
+    }
+    
+    // تحديث الأزرار عند التبديل بين الأنواع
+    entryTypeRadios.forEach(radio => {
+        radio.addEventListener('change', updateRemoveButtons);
+    });
+    
+    updateRemoveButtons();
 });
 </script>
 @endsection

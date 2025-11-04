@@ -96,8 +96,16 @@
                         
                         <div class="col-md-4 mb-3">
                             <label for="start_time" class="form-label">وقت البداية <span class="text-danger">*</span></label>
+                            @php
+                                $startTimeValue = old('start_time');
+                                if (!$startTimeValue) {
+                                    $rawStartTime = $timeEntry->getRawOriginal('start_time');
+                                    $startTimeValue = $rawStartTime ? substr($rawStartTime, 0, 5) : '';
+                                }
+                            @endphp
                             <input type="time" class="form-control @error('start_time') is-invalid @enderror" 
-                                   id="start_time" name="start_time" value="{{ old('start_time', $timeEntry->start_time) }}" 
+                                   id="start_time" name="start_time" 
+                                   value="{{ $startTimeValue }}" 
                                    placeholder="09:00" required>
                             <small class="form-text text-muted">نظام 24 ساعة (مثال: 09:00, 14:30)</small>
                             @error('start_time')
@@ -107,8 +115,16 @@
                         
                         <div class="col-md-4 mb-3">
                             <label for="end_time" class="form-label">وقت النهاية <span class="text-danger">*</span></label>
+                            @php
+                                $endTimeValue = old('end_time');
+                                if (!$endTimeValue) {
+                                    $rawEndTime = $timeEntry->getRawOriginal('end_time');
+                                    $endTimeValue = $rawEndTime ? substr($rawEndTime, 0, 5) : '';
+                                }
+                            @endphp
                             <input type="time" class="form-control @error('end_time') is-invalid @enderror" 
-                                   id="end_time" name="end_time" value="{{ old('end_time', $timeEntry->end_time) }}" 
+                                   id="end_time" name="end_time" 
+                                   value="{{ $endTimeValue }}" 
                                    placeholder="17:00" required>
                             <small class="form-text text-muted">نظام 24 ساعة (مثال: 17:00, 18:30)</small>
                             @error('end_time')

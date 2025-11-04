@@ -22,8 +22,6 @@ class TimeEntry extends Model
 
     protected $casts = [
         'date' => 'date',
-        'start_time' => 'datetime:H:i',
-        'end_time' => 'datetime:H:i',
         'hours_worked' => 'decimal:2',
         'hourly_rate' => 'decimal:2',
         'total_amount' => 'decimal:2',
