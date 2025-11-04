@@ -12,6 +12,18 @@
     </div>
 </div>
 
+@if ($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <h5><i class="fas fa-exclamation-triangle me-2"></i>يرجى تصحيح الأخطاء التالية:</h5>
+        <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
 <div class="row">
     <div class="col-md-8">
         <div class="card">
@@ -95,17 +107,44 @@
                             </div>
                         </div>
                         
+                        @if($errors->has('items') || $errors->has('items.*'))
+                            <div class="alert alert-danger mb-3">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <strong>يرجى إدخال بيانات صحيحة للعناصر:</strong>
+                                <ul class="mb-0 mt-2">
+                                    @foreach($errors->get('items.*.description') as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                    @if($errors->has('items'))
+                                        @foreach($errors->get('items') as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    @endif
+                                </ul>
+                            </div>
+                        @endif
+                        
                         <div id="invoice-items">
                             <div class="invoice-item row mb-3" data-entry-type="amount">
                                 <div class="col-md-6">
-                                    <label class="form-label">الوصف <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="items[0][description]" 
-                                           placeholder="وصف الخدمة أو المنتج" required>
+                                    <label class="form-label">الوصف</label>
+                                    <input type="text" class="form-control @error('items.0.description') is-invalid @enderror" 
+                                           name="items[0][description]" 
+                                           value="{{ old('items.0.description') }}"
+                                           placeholder="وصف الخدمة أو المنتج (اختياري)">
+                                    @error('items.0.description')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
                                 <div class="col-md-5">
                                     <label class="form-label">المبلغ <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control item-amount" name="items[0][amount]" 
-                                           value="0" min="0" step="0.01" required>
+                                    <input type="number" class="form-control item-amount @error('items.0.amount') is-invalid @enderror" 
+                                           name="items[0][amount]" 
+                                           value="{{ old('items.0.amount', '0') }}" 
+                                           min="0" step="0.01" required>
+                                    @error('items.0.amount')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                     <input type="hidden" class="form-control quantity" name="items[0][quantity]" value="1">
                                     <input type="hidden" class="form-control unit-price" name="items[0][unit_price]" value="0">
                                 </div>
@@ -119,19 +158,34 @@
                             
                             <div class="invoice-item row mb-3 d-none" data-entry-type="hours">
                                 <div class="col-md-4">
-                                    <label class="form-label">الوصف <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="items[0][description]" 
+                                    <label class="form-label">الوصف</label>
+                                    <input type="text" class="form-control @error('items.0.description') is-invalid @enderror" 
+                                           name="items[0][description]" 
+                                           value="{{ old('items.0.description') }}"
                                            placeholder="وصف العمل">
+                                    @error('items.0.description')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">عدد الساعات <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control item-hours" name="items[0][hours]" 
-                                           value="0" min="0" step="0.01">
+                                    <input type="number" class="form-control item-hours @error('items.0.hours') is-invalid @enderror" 
+                                           name="items[0][hours]" 
+                                           value="{{ old('items.0.hours', '0') }}" 
+                                           min="0" step="0.01">
+                                    @error('items.0.hours')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">سعر الساعة <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control item-hourly-rate" name="items[0][hourly_rate]" 
-                                           value="0" min="0" step="0.01">
+                                    <input type="number" class="form-control item-hourly-rate @error('items.0.hourly_rate') is-invalid @enderror" 
+                                           name="items[0][hourly_rate]" 
+                                           value="{{ old('items.0.hourly_rate', '0') }}" 
+                                           min="0" step="0.01">
+                                    @error('items.0.hourly_rate')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">المجموع</label>
@@ -259,11 +313,19 @@ document.addEventListener('DOMContentLoaded', function() {
             items.forEach(item => {
                 if (item.dataset.entryType === entryType) {
                     item.classList.remove('d-none');
-                    // إظهار/إخفاء الحقول المطلوبة
+                    // إظهار/إخفاء الحقول المطلوبة وتحديث الحقول المخفية
                     if (entryType === 'amount') {
                         const amountInput = item.querySelector('.item-amount');
+                        const quantityInput = item.querySelector('.quantity');
+                        const unitPriceInput = item.querySelector('.unit-price');
                         if (amountInput) {
                             amountInput.required = true;
+                            // تحديث الحقول المخفية
+                            if (quantityInput && unitPriceInput) {
+                                const amount = parseFloat(amountInput.value) || 0;
+                                quantityInput.value = 1;
+                                unitPriceInput.value = amount;
+                            }
                         }
                         const hoursInput = item.querySelector('.item-hours');
                         const hourlyRateInput = item.querySelector('.item-hourly-rate');
@@ -272,8 +334,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         const hoursInput = item.querySelector('.item-hours');
                         const hourlyRateInput = item.querySelector('.item-hourly-rate');
-                        if (hoursInput) hoursInput.required = true;
-                        if (hourlyRateInput) hourlyRateInput.required = true;
+                        const quantityInput = item.querySelector('.quantity');
+                        const unitPriceInput = item.querySelector('.unit-price');
+                        if (hoursInput && hourlyRateInput) {
+                            hoursInput.required = true;
+                            hourlyRateInput.required = true;
+                            // تحديث الحقول المخفية
+                            if (quantityInput && unitPriceInput) {
+                                const hours = parseFloat(hoursInput.value) || 0;
+                                const hourlyRate = parseFloat(hourlyRateInput.value) || 0;
+                                quantityInput.value = hours;
+                                unitPriceInput.value = hourlyRate;
+                            }
+                        }
                         const amountInput = item.querySelector('.item-amount');
                         if (amountInput) amountInput.required = false;
                     }
@@ -303,9 +376,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (activeEntryType === 'amount') {
             newItem.innerHTML = `
                 <div class="col-md-6">
-                    <label class="form-label">الوصف <span class="text-danger">*</span></label>
+                    <label class="form-label">الوصف</label>
                     <input type="text" class="form-control" name="items[${itemIndex}][description]" 
-                           placeholder="وصف الخدمة أو المنتج" required>
+                           placeholder="وصف الخدمة أو المنتج (اختياري)">
                 </div>
                 <div class="col-md-5">
                     <label class="form-label">المبلغ <span class="text-danger">*</span></label>
@@ -324,9 +397,9 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             newItem.innerHTML = `
                 <div class="col-md-4">
-                    <label class="form-label">الوصف <span class="text-danger">*</span></label>
+                    <label class="form-label">الوصف</label>
                     <input type="text" class="form-control" name="items[${itemIndex}][description]" 
-                           placeholder="وصف العمل" required>
+                           placeholder="وصف العمل (اختياري)">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">عدد الساعات <span class="text-danger">*</span></label>
@@ -450,6 +523,32 @@ document.addEventListener('DOMContentLoaded', function() {
         addItemEventListeners(item);
     });
     
+    // تهيئة العنصر الأول عند التحميل
+    const activeEntryType = document.querySelector('input[name="entry_type"]:checked').value;
+    const firstItem = document.querySelector('.invoice-item');
+    if (firstItem) {
+        if (activeEntryType === 'amount') {
+            const amountInput = firstItem.querySelector('.item-amount');
+            if (amountInput && amountInput.value && parseFloat(amountInput.value) > 0) {
+                const quantityInput = firstItem.querySelector('.quantity');
+                const unitPriceInput = firstItem.querySelector('.unit-price');
+                if (quantityInput) quantityInput.value = 1;
+                if (unitPriceInput) unitPriceInput.value = amountInput.value;
+            }
+        } else {
+            const hoursInput = firstItem.querySelector('.item-hours');
+            const hourlyRateInput = firstItem.querySelector('.item-hourly-rate');
+            const quantityInput = firstItem.querySelector('.quantity');
+            const unitPriceInput = firstItem.querySelector('.unit-price');
+            if (hoursInput && hourlyRateInput && quantityInput && unitPriceInput) {
+                const hours = parseFloat(hoursInput.value) || 0;
+                const hourlyRate = parseFloat(hourlyRateInput.value) || 0;
+                quantityInput.value = hours;
+                unitPriceInput.value = hourlyRate;
+            }
+        }
+    }
+    
     // حساب أولي
     calculateInvoiceTotal();
     
@@ -471,6 +570,61 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     updateRemoveButtons();
+    
+    // تحديث الحقول المخفية قبل إرسال النموذج
+    const invoiceForm = document.getElementById('invoice-form');
+    if (invoiceForm) {
+        invoiceForm.addEventListener('submit', function(e) {
+            // التأكد من وجود CSRF token
+            let csrfToken = document.querySelector('input[name="_token"]');
+            if (!csrfToken) {
+                // إنشاء CSRF token إذا لم يكن موجوداً
+                const metaToken = document.querySelector('meta[name="csrf-token"]');
+                if (metaToken) {
+                    csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = '_token';
+                    csrfToken.value = metaToken.getAttribute('content');
+                    invoiceForm.appendChild(csrfToken);
+                }
+            } else {
+                // تحديث CSRF token من meta tag
+                const metaToken = document.querySelector('meta[name="csrf-token"]');
+                if (metaToken && csrfToken.value !== metaToken.getAttribute('content')) {
+                    csrfToken.value = metaToken.getAttribute('content');
+                }
+            }
+            
+            const activeEntryType = document.querySelector('input[name="entry_type"]:checked').value;
+            const items = document.querySelectorAll('.invoice-item:not(.d-none)');
+            
+            items.forEach(item => {
+                const quantityInput = item.querySelector('.quantity');
+                const unitPriceInput = item.querySelector('.unit-price');
+                
+                if (activeEntryType === 'amount') {
+                    const amountInput = item.querySelector('.item-amount');
+                    if (amountInput && quantityInput && unitPriceInput) {
+                        const amount = parseFloat(amountInput.value) || 0;
+                        quantityInput.value = 1;
+                        unitPriceInput.value = amount;
+                    }
+                } else {
+                    const hoursInput = item.querySelector('.item-hours');
+                    const hourlyRateInput = item.querySelector('.item-hourly-rate');
+                    if (hoursInput && hourlyRateInput && quantityInput && unitPriceInput) {
+                        const hours = parseFloat(hoursInput.value) || 0;
+                        const hourlyRate = parseFloat(hourlyRateInput.value) || 0;
+                        quantityInput.value = hours;
+                        unitPriceInput.value = hourlyRate;
+                    }
+                }
+            });
+            
+            // السماح بإرسال النموذج بشكل طبيعي
+            return true;
+        });
+    }
 });
 </script>
 @endsection

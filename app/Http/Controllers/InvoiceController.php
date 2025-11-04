@@ -31,7 +31,7 @@ class InvoiceController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
             'project_id' => 'nullable|exists:projects,id',
             'issue_date' => 'required|date',
@@ -39,11 +39,38 @@ class InvoiceController extends Controller
             'notes' => 'nullable|string',
             'terms' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.description' => 'required|string',
+            'items.*.description' => 'nullable|string',
             'items.*.amount' => 'nullable|numeric|min:0',
             'items.*.quantity' => 'nullable|numeric|min:0.01',
             'items.*.unit_price' => 'nullable|numeric|min:0',
+            'items.*.hours' => 'nullable|numeric|min:0',
+            'items.*.hourly_rate' => 'nullable|numeric|min:0',
+        ], [
+            'client_id.required' => 'يجب اختيار العميل.',
+            'client_id.exists' => 'العميل المحدد غير موجود.',
+            'issue_date.required' => 'يجب إدخال تاريخ الإصدار.',
+            'issue_date.date' => 'تاريخ الإصدار غير صحيح.',
+            'due_date.required' => 'يجب إدخال تاريخ الاستحقاق.',
+            'due_date.date' => 'تاريخ الاستحقاق غير صحيح.',
+            'due_date.after' => 'تاريخ الاستحقاق يجب أن يكون بعد تاريخ الإصدار.',
+            'items.required' => 'يجب إضافة عنصر واحد على الأقل.',
+            'items.min' => 'يجب إضافة عنصر واحد على الأقل.',
         ]);
+        
+        // التحقق من أن كل عنصر يحتوي على بيانات صحيحة
+        foreach ($request->items as $index => $item) {
+            $hasAmount = isset($item['amount']) && floatval($item['amount']) > 0;
+            $hasHours = isset($item['hours']) && floatval($item['hours']) > 0 && 
+                       isset($item['hourly_rate']) && floatval($item['hourly_rate']) > 0;
+            $hasQuantity = isset($item['quantity']) && floatval($item['quantity']) > 0 && 
+                          isset($item['unit_price']) && floatval($item['unit_price']) > 0;
+            
+            if (!$hasAmount && !$hasHours && !$hasQuantity) {
+                return redirect()->back()
+                    ->withErrors(['items.' . $index . '.amount' => 'يجب إدخال المبلغ أو الساعات وسعر الساعة للعنصر رقم ' . ($index + 1) . '.'])
+                    ->withInput();
+            }
+        }
 
         DB::beginTransaction();
         try {
@@ -55,10 +82,13 @@ class InvoiceController extends Controller
             foreach ($request->items as $item) {
                 // إذا كان هناك مبلغ مباشر، استخدمه
                 if (isset($item['amount']) && $item['amount'] > 0) {
-                    $subtotal += $item['amount'];
-                } else {
+                    $subtotal += floatval($item['amount']);
+                } elseif (isset($item['hours']) && isset($item['hourly_rate'])) {
                     // حساب من الساعات وسعر الساعة
-                    $subtotal += ($item['quantity'] ?? 1) * ($item['unit_price'] ?? 0);
+                    $subtotal += floatval($item['hours'] ?? 0) * floatval($item['hourly_rate'] ?? 0);
+                } else {
+                    // حساب من quantity و unit_price
+                    $subtotal += floatval($item['quantity'] ?? 1) * floatval($item['unit_price'] ?? 0);
                 }
             }
             
@@ -86,18 +116,27 @@ class InvoiceController extends Controller
                 // حساب المجموع للعنصر
                 $itemTotal = 0;
                 if (isset($item['amount']) && $item['amount'] > 0) {
+                    // حالة المبلغ المباشر
                     $itemTotal = $item['amount'];
                     $quantity = 1;
                     $unitPrice = $item['amount'];
+                } elseif (isset($item['hours']) && isset($item['hourly_rate'])) {
+                    // حالة الساعات وسعر الساعة (من الحقول المباشرة)
+                    $hours = floatval($item['hours'] ?? 0);
+                    $hourlyRate = floatval($item['hourly_rate'] ?? 0);
+                    $quantity = $hours;
+                    $unitPrice = $hourlyRate;
+                    $itemTotal = $hours * $hourlyRate;
                 } else {
-                    $quantity = $item['quantity'] ?? 1;
-                    $unitPrice = $item['unit_price'] ?? 0;
+                    // حالة quantity و unit_price (من الحقول المخفية)
+                    $quantity = floatval($item['quantity'] ?? 1);
+                    $unitPrice = floatval($item['unit_price'] ?? 0);
                     $itemTotal = $quantity * $unitPrice;
                 }
                 
                 InvoiceItem::create([
                     'invoice_id' => $invoice->id,
-                    'description' => $item['description'],
+                    'description' => $item['description'] ?? null,
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
                     'total' => $itemTotal,
@@ -109,8 +148,11 @@ class InvoiceController extends Controller
                 ->with('success', 'تم إنشاء الفاتورة بنجاح.');
         } catch (\Exception $e) {
             DB::rollback();
+            \Log::error('Invoice creation error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return redirect()->back()
-                ->with('error', 'حدث خطأ أثناء إنشاء الفاتورة.')
+                ->with('error', 'حدث خطأ أثناء إنشاء الفاتورة: ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -140,10 +182,12 @@ class InvoiceController extends Controller
             'notes' => 'nullable|string',
             'terms' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.description' => 'required|string',
+            'items.*.description' => 'nullable|string',
             'items.*.amount' => 'nullable|numeric|min:0',
             'items.*.quantity' => 'nullable|numeric|min:0.01',
             'items.*.unit_price' => 'nullable|numeric|min:0',
+            'items.*.hours' => 'nullable|numeric|min:0',
+            'items.*.hourly_rate' => 'nullable|numeric|min:0',
         ]);
 
         DB::beginTransaction();
@@ -153,10 +197,13 @@ class InvoiceController extends Controller
             foreach ($request->items as $item) {
                 // إذا كان هناك مبلغ مباشر، استخدمه
                 if (isset($item['amount']) && $item['amount'] > 0) {
-                    $subtotal += $item['amount'];
-                } else {
+                    $subtotal += floatval($item['amount']);
+                } elseif (isset($item['hours']) && isset($item['hourly_rate'])) {
                     // حساب من الساعات وسعر الساعة
-                    $subtotal += $item['quantity'] * $item['unit_price'];
+                    $subtotal += floatval($item['hours'] ?? 0) * floatval($item['hourly_rate'] ?? 0);
+                } else {
+                    // حساب من quantity و unit_price
+                    $subtotal += floatval($item['quantity'] ?? 1) * floatval($item['unit_price'] ?? 0);
                 }
             }
             
@@ -183,18 +230,27 @@ class InvoiceController extends Controller
                 // حساب المجموع للعنصر
                 $itemTotal = 0;
                 if (isset($item['amount']) && $item['amount'] > 0) {
+                    // حالة المبلغ المباشر
                     $itemTotal = $item['amount'];
                     $quantity = 1;
                     $unitPrice = $item['amount'];
+                } elseif (isset($item['hours']) && isset($item['hourly_rate'])) {
+                    // حالة الساعات وسعر الساعة (من الحقول المباشرة)
+                    $hours = floatval($item['hours'] ?? 0);
+                    $hourlyRate = floatval($item['hourly_rate'] ?? 0);
+                    $quantity = $hours;
+                    $unitPrice = $hourlyRate;
+                    $itemTotal = $hours * $hourlyRate;
                 } else {
-                    $quantity = $item['quantity'] ?? 1;
-                    $unitPrice = $item['unit_price'] ?? 0;
+                    // حالة quantity و unit_price (من الحقول المخفية)
+                    $quantity = floatval($item['quantity'] ?? 1);
+                    $unitPrice = floatval($item['unit_price'] ?? 0);
                     $itemTotal = $quantity * $unitPrice;
                 }
                 
                 InvoiceItem::create([
                     'invoice_id' => $invoice->id,
-                    'description' => $item['description'],
+                    'description' => $item['description'] ?? null,
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
                     'total' => $itemTotal,
