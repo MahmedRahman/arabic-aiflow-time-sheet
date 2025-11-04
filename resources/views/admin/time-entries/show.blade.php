@@ -41,6 +41,13 @@
                     </div>
                     <div class="col-md-6">
                         <p><strong>المشروع:</strong> {{ $timeEntry->project->name }}</p>
+                        @if($timeEntry->task)
+                            <p><strong>المهمة:</strong> 
+                                <a href="{{ route('admin.tasks.show', $timeEntry->task) }}" class="text-decoration-none">
+                                    <i class="fas fa-tasks me-1"></i>{{ $timeEntry->task->title }}
+                                </a>
+                            </p>
+                        @endif
                         <p><strong>العميل:</strong> {{ $timeEntry->project->client->name }}</p>
                         <p><strong>المطور:</strong> {{ $timeEntry->user->name }}</p>
                         <p><strong>سعر الساعة:</strong> {{ number_format($timeEntry->hourly_rate, 2) }} ج.م</p>

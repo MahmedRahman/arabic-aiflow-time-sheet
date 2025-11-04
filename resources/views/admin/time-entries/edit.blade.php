@@ -62,6 +62,28 @@
                         </div>
                     </div>
                     
+                    <div class="mb-3">
+                        <label for="task_id" class="form-label">المهمة (اختياري)</label>
+                        <select class="form-select @error('task_id') is-invalid @enderror" 
+                                id="task_id" name="task_id">
+                            <option value="">اختر المهمة</option>
+                            @foreach($tasks as $task)
+                                <option value="{{ $task->id }}" 
+                                        data-project-id="{{ $task->project_id }}"
+                                        {{ old('task_id', $timeEntry->task_id) == $task->id ? 'selected' : '' }}>
+                                    {{ $task->title }}
+                                    @if($task->project)
+                                        - {{ $task->project->name }}
+                                    @endif
+                                </option>
+                            @endforeach
+                        </select>
+                        <small class="form-text text-muted">يمكنك اختيار مهمة مرتبطة بهذا المشروع</small>
+                        @error('task_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label for="date" class="form-label">التاريخ <span class="text-danger">*</span></label>
@@ -244,6 +266,39 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // حساب أولي عند تحميل الصفحة
     calculateHours();
+    
+    // تحديث قائمة المهام عند تغيير المشروع
+    const taskSelect = document.getElementById('task_id');
+    
+    projectSelect.addEventListener('change', function() {
+        const selectedProjectId = this.value;
+        const taskOptions = taskSelect.querySelectorAll('option');
+        
+        taskOptions.forEach(option => {
+            if (option.value === '') {
+                option.style.display = 'block';
+                return;
+            }
+            
+            const taskProjectId = option.getAttribute('data-project-id');
+            if (selectedProjectId && taskProjectId !== selectedProjectId) {
+                option.style.display = 'none';
+            } else {
+                option.style.display = 'block';
+            }
+        });
+        
+        // إعادة تعيين اختيار المهمة إذا كانت لا تنتمي للمشروع المحدد
+        if (selectedProjectId && taskSelect.value) {
+            const selectedTask = taskSelect.querySelector(`option[value="${taskSelect.value}"]`);
+            if (selectedTask && selectedTask.getAttribute('data-project-id') !== selectedProjectId) {
+                taskSelect.value = '';
+            }
+        }
+    });
+    
+    // تشغيل عند تحميل الصفحة
+    projectSelect.dispatchEvent(new Event('change'));
 });
 </script>
 @endsection

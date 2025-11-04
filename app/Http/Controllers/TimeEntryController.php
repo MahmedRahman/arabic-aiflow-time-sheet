@@ -6,12 +6,13 @@ use Illuminate\Http\Request;
 use App\Models\TimeEntry;
 use App\Models\Project;
 use App\Models\User;
+use App\Models\Task;
 
 class TimeEntryController extends Controller
 {
     public function index()
     {
-        $timeEntries = TimeEntry::with(['project.client', 'user'])
+        $timeEntries = TimeEntry::with(['project.client', 'user', 'task'])
             ->latest()
             ->paginate(20);
         return view('admin.time-entries.index', compact('timeEntries'));
@@ -21,13 +22,15 @@ class TimeEntryController extends Controller
     {
         $projects = Project::with('client')->get();
         $users = User::where('role', 'admin')->get();
-        return view('admin.time-entries.create', compact('projects', 'users'));
+        $tasks = Task::with('project')->get();
+        return view('admin.time-entries.create', compact('projects', 'users', 'tasks'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'project_id' => 'required|exists:projects,id',
+            'task_id' => 'nullable|exists:tasks,id',
             'user_id' => 'required|exists:users,id',
             'date' => 'required|date',
             'start_time' => 'required',
@@ -46,6 +49,7 @@ class TimeEntryController extends Controller
 
         TimeEntry::create([
             'project_id' => $request->project_id,
+            'task_id' => $request->task_id,
             'user_id' => $request->user_id,
             'date' => $request->date,
             'start_time' => $request->start_time,
@@ -63,7 +67,7 @@ class TimeEntryController extends Controller
 
     public function show(TimeEntry $timeEntry)
     {
-        $timeEntry->load(['project.client', 'user']);
+        $timeEntry->load(['project.client', 'user', 'task']);
         return view('admin.time-entries.show', compact('timeEntry'));
     }
 
@@ -71,13 +75,15 @@ class TimeEntryController extends Controller
     {
         $projects = Project::with('client')->get();
         $users = User::where('role', 'admin')->get();
-        return view('admin.time-entries.edit', compact('timeEntry', 'projects', 'users'));
+        $tasks = Task::with('project')->get();
+        return view('admin.time-entries.edit', compact('timeEntry', 'projects', 'users', 'tasks'));
     }
 
     public function update(Request $request, TimeEntry $timeEntry)
     {
         $request->validate([
             'project_id' => 'required|exists:projects,id',
+            'task_id' => 'nullable|exists:tasks,id',
             'user_id' => 'required|exists:users,id',
             'date' => 'required|date',
             'start_time' => 'required',
@@ -97,6 +103,7 @@ class TimeEntryController extends Controller
 
         $timeEntry->update([
             'project_id' => $request->project_id,
+            'task_id' => $request->task_id,
             'user_id' => $request->user_id,
             'date' => $request->date,
             'start_time' => $request->start_time,

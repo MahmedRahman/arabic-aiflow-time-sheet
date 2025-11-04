@@ -8,6 +8,7 @@ class TimeEntry extends Model
 {
     protected $fillable = [
         'project_id',
+        'task_id',
         'user_id',
         'date',
         'start_time',
@@ -36,5 +37,10 @@ class TimeEntry extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function task()
+    {
+        return $this->belongsTo(Task::class);
     }
 }

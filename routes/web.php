@@ -7,6 +7,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TimeEntryController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\TaskController;
 
 // الصفحة الرئيسية
 Route::get('/', function () {
@@ -40,6 +41,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/clients/{client}', [ClientController::class, 'adminDestroy'])->name('clients.destroy');
     
     Route::resource('projects', ProjectController::class);
+    Route::resource('tasks', TaskController::class);
     Route::resource('time-entries', TimeEntryController::class);
     Route::patch('/time-entries/{timeEntry}/approve', [TimeEntryController::class, 'approve'])->name('time-entries.approve');
     Route::patch('/time-entries/{timeEntry}/reject', [TimeEntryController::class, 'reject'])->name('time-entries.reject');

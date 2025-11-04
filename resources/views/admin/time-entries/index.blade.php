@@ -19,6 +19,7 @@
                         <tr>
                             <th>التاريخ</th>
                             <th>المشروع</th>
+                            <th>المهمة</th>
                             <th>العميل</th>
                             <th>المطور</th>
                             <th>وقت البداية</th>
@@ -34,6 +35,15 @@
                         <tr>
                             <td>{{ $entry->date->format('Y-m-d') }}</td>
                             <td>{{ $entry->project->name }}</td>
+                            <td>
+                                @if($entry->task)
+                                    <a href="{{ route('admin.tasks.show', $entry->task) }}" class="text-decoration-none">
+                                        <i class="fas fa-tasks me-1"></i>{{ $entry->task->title }}
+                                    </a>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
                             <td>{{ $entry->project->client->name }}</td>
                             <td>{{ $entry->user->name }}</td>
                             <td>

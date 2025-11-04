@@ -338,6 +338,10 @@
                                 <i class="fas fa-project-diagram me-2"></i>
                                 المشاريع
                             </a>
+                            <a class="nav-link {{ request()->routeIs('admin.tasks.*') ? 'active' : '' }}" href="{{ route('admin.tasks.index') }}">
+                                <i class="fas fa-tasks me-2"></i>
+                                المهام
+                            </a>
                             <a class="nav-link {{ request()->routeIs('admin.time-entries.*') ? 'active' : '' }}" href="{{ route('admin.time-entries.index') }}">
                                 <i class="fas fa-clock me-2"></i>
                                 ساعات العمل
