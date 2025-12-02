@@ -18,6 +18,9 @@ class TimeEntry extends Model
         'hourly_rate',
         'total_amount',
         'status',
+        'is_active',
+        'started_at',
+        'is_paid',
     ];
 
     protected $casts = [
@@ -25,6 +28,9 @@ class TimeEntry extends Model
         'hours_worked' => 'decimal:2',
         'hourly_rate' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'is_active' => 'boolean',
+        'started_at' => 'datetime',
+        'is_paid' => 'boolean',
     ];
 
     public function project()

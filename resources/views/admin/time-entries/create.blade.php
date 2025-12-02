@@ -185,44 +185,78 @@ document.addEventListener('DOMContentLoaded', function() {
         const endTime = endTimeInput.value;
         
         if (startTime && endTime) {
-            const start = new Date('2000-01-01T' + startTime);
-            const end = new Date('2000-01-01T' + endTime);
+            // تحويل الأوقات إلى دقائق من بداية اليوم
+            const startParts = startTime.split(':');
+            const endParts = endTime.split(':');
+            const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+            const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
             
-            if (end > start) {
-                const diffMs = end - start;
-                const diffHours = diffMs / (1000 * 60 * 60);
-                
-                // تحويل الساعات إلى ساعات ودقائق
-                const hours = Math.floor(diffHours);
-                const minutes = Math.round((diffHours - hours) * 60);
-                
-                let timeDisplay = '';
-                if (hours > 0 && minutes > 0) {
-                    timeDisplay = `${hours} ساعة و ${minutes} دقيقة`;
-                } else if (hours > 0) {
-                    timeDisplay = `${hours} ساعة`;
-                } else {
-                    timeDisplay = `${minutes} دقيقة`;
-                }
-                
-                calculationDetails.innerHTML = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p><strong>وقت البداية:</strong> ${startTime}</p>
-                            <p><strong>وقت النهاية:</strong> ${endTime}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p><strong>المدة:</strong> ${timeDisplay}</p>
-                            <p><strong>الساعات:</strong> ${diffHours.toFixed(2)} ساعة</p>
-                        </div>
-                    </div>
-                `;
-                calculationPreview.style.display = 'block';
+            let diffMinutes;
+            
+            // إذا كان وقت النهاية أقل من وقت البداية، فهذا يعني أن وقت النهاية في اليوم التالي
+            if (endMinutes < startMinutes) {
+                // حساب الفرق مع إضافة 24 ساعة (1440 دقيقة)
+                diffMinutes = (24 * 60) - startMinutes + endMinutes;
             } else {
-                calculationPreview.style.display = 'none';
+                // حساب الفرق العادي
+                diffMinutes = endMinutes - startMinutes;
             }
+            
+            // تحويل الدقائق إلى ساعات
+            const diffHours = diffMinutes / 60;
+            
+            // تحويل الساعات إلى ساعات ودقائق
+            const hours = Math.floor(diffHours);
+            const minutes = diffMinutes % 60;
+            
+            let timeDisplay = '';
+            if (hours > 0 && minutes > 0) {
+                timeDisplay = `${hours} ساعة و ${minutes} دقيقة`;
+            } else if (hours > 0) {
+                timeDisplay = `${hours} ساعة`;
+            } else if (minutes > 0) {
+                timeDisplay = `${minutes} دقيقة`;
+            } else {
+                timeDisplay = '0 دقيقة';
+            }
+            
+            // تنسيق عرض الوقت بشكل أفضل
+            const startDisplay = formatTime(startTime);
+            const endDisplay = formatTime(endTime);
+            const nextDayIndicator = endMinutes < startMinutes ? ' <span class="badge bg-info">اليوم التالي</span>' : '';
+            
+            calculationDetails.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>وقت البداية:</strong> ${startDisplay}</p>
+                        <p><strong>وقت النهاية:</strong> ${endDisplay}${nextDayIndicator}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>المدة:</strong> ${timeDisplay}</p>
+                        <p><strong>الساعات:</strong> <span class="text-primary fw-bold">${diffHours.toFixed(2)}</span> ساعة</p>
+                    </div>
+                </div>
+            `;
+            calculationPreview.style.display = 'block';
         } else {
             calculationPreview.style.display = 'none';
+        }
+    }
+    
+    // دالة لتنسيق عرض الوقت
+    function formatTime(timeString) {
+        const parts = timeString.split(':');
+        const hours = parseInt(parts[0]);
+        const minutes = parts[1];
+        
+        if (hours === 0) {
+            return `12:${minutes} صباحاً`;
+        } else if (hours < 12) {
+            return `${hours}:${minutes} صباحاً`;
+        } else if (hours === 12) {
+            return `12:${minutes} ظهراً`;
+        } else {
+            return `${hours - 12}:${minutes} مساءً`;
         }
     }
     

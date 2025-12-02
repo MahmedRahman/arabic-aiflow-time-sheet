@@ -34,6 +34,69 @@
                 <form method="POST" action="{{ route('admin.invoices.store') }}" id="invoice-form">
                     @csrf
                     
+                    <!-- اختيار من المهمة والجلسة -->
+                    <div class="alert alert-info mb-4">
+                        <h6><i class="fas fa-info-circle me-2"></i>إنشاء فاتورة من المهمة والجلسة</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="task_id" class="form-label">المهمة</label>
+                                <div class="input-group">
+                                    <select class="form-select" id="task_id" name="task_id">
+                                        <option value="">اختر المهمة (اختياري)</option>
+                                        @foreach($tasks as $task)
+                                            <option value="{{ $task->id }}" 
+                                                    data-project="{{ $task->project_id }}"
+                                                    data-client="{{ $task->project ? $task->project->client_id : '' }}"
+                                                    data-project-hourly-rate="{{ $task->project ? $task->project->hourly_rate : '' }}">
+                                                {{ $task->title }} 
+                                                @if($task->project)
+                                                    - {{ $task->project->name }}
+                                                @endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <button type="button" class="btn btn-success" id="load-unpaid-sessions-btn" disabled>
+                                        <i class="fas fa-plus-circle me-1"></i>إضافة جميع الجلسات غير المدفوعة
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="time_entry_id" class="form-label">الجلسة</label>
+                                <select class="form-select" id="time_entry_id" name="time_entry_id">
+                                    <option value="">اختر الجلسة (اختياري)</option>
+                                    @foreach($timeEntries as $timeEntry)
+                                        <option value="{{ $timeEntry->id }}" 
+                                                data-task="{{ $timeEntry->task_id }}"
+                                                data-project="{{ $timeEntry->project_id }}"
+                                                data-client="{{ $timeEntry->project ? $timeEntry->project->client_id : '' }}"
+                                                data-hours="{{ $timeEntry->hours_worked }}"
+                                                data-hourly-rate="{{ $timeEntry->hourly_rate }}"
+                                                data-is-paid="{{ $timeEntry->is_paid ? '1' : '0' }}"
+                                                data-description="{{ $timeEntry->description ?? ($timeEntry->task ? $timeEntry->task->title : '') }}">
+                                            {{ $timeEntry->date->format('Y-m-d') }} - 
+                                            {{ \Carbon\Carbon::parse($timeEntry->start_time)->format('H:i') }} - 
+                                            @if($timeEntry->end_time)
+                                                {{ \Carbon\Carbon::parse($timeEntry->end_time)->format('H:i') }}
+                                            @else
+                                                جاري...
+                                            @endif
+                                            @if($timeEntry->task)
+                                                ({{ $timeEntry->task->title }})
+                                            @endif
+                                            @if($timeEntry->is_paid)
+                                                - مدفوعة
+                                            @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" id="load-session-btn">
+                            <i class="fas fa-arrow-down me-2"></i>تحميل بيانات الجلسة
+                        </button>
+                    </div>
+                    
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="client_id" class="form-label">العميل <span class="text-danger">*</span></label>
@@ -56,9 +119,10 @@
                             <select class="form-select @error('project_id') is-invalid @enderror" 
                                     id="project_id" name="project_id">
                                 <option value="">اختر المشروع (اختياري)</option>
-                                @foreach($projects as $project)
+                                    @foreach($projects as $project)
                                     <option value="{{ $project->id }}" 
                                             data-client="{{ $project->client_id }}"
+                                            data-hourly-rate="{{ $project->hourly_rate }}"
                                             {{ old('project_id') == $project->id ? 'selected' : '' }}>
                                         {{ $project->name }} - {{ $project->client->name }}
                                     </option>
@@ -282,10 +346,303 @@
 document.addEventListener('DOMContentLoaded', function() {
     const clientSelect = document.getElementById('client_id');
     const projectSelect = document.getElementById('project_id');
+    const taskSelect = document.getElementById('task_id');
+    const timeEntrySelect = document.getElementById('time_entry_id');
+    const loadSessionBtn = document.getElementById('load-session-btn');
+    const loadUnpaidSessionsBtn = document.getElementById('load-unpaid-sessions-btn');
     const addItemBtn = document.getElementById('add-item');
     const invoiceItems = document.getElementById('invoice-items');
     const entryTypeRadios = document.querySelectorAll('input[name="entry_type"]');
     let itemIndex = 1;
+    
+    // تفعيل/تعطيل زر إضافة جميع الجلسات غير المدفوعة
+    if (taskSelect && loadUnpaidSessionsBtn) {
+        taskSelect.addEventListener('change', function() {
+            if (this.value) {
+                loadUnpaidSessionsBtn.disabled = false;
+            } else {
+                loadUnpaidSessionsBtn.disabled = true;
+            }
+        });
+    }
+    
+    // إضافة جميع الجلسات غير المدفوعة للمهمة المختارة
+    if (loadUnpaidSessionsBtn && taskSelect && timeEntrySelect) {
+        loadUnpaidSessionsBtn.addEventListener('click', function() {
+            const taskId = taskSelect.value;
+            if (!taskId) {
+                alert('يرجى اختيار مهمة أولاً');
+                return;
+            }
+            
+            // البحث عن جميع الجلسات غير المدفوعة للمهمة المختارة
+            const unpaidSessions = [];
+            const allOptions = timeEntrySelect.querySelectorAll('option[data-task]');
+            
+            allOptions.forEach(option => {
+                if (option.value && 
+                    option.dataset.task === taskId && 
+                    option.dataset.isPaid === '0') {
+                    unpaidSessions.push(option);
+                }
+            });
+            
+            if (unpaidSessions.length === 0) {
+                alert('لا توجد جلسات غير مدفوعة لهذه المهمة');
+                return;
+            }
+            
+            // ملء بيانات العميل والمشروع من المهمة
+            const taskOption = taskSelect.querySelector(`option[value="${taskId}"]`);
+            if (taskOption) {
+                const clientId = taskOption.dataset.client;
+                const projectId = taskOption.dataset.project;
+                const projectHourlyRate = parseFloat(taskOption.dataset.projectHourlyRate) || 0;
+                
+                if (clientId && clientSelect) {
+                    clientSelect.value = clientId;
+                }
+                if (projectId && projectSelect) {
+                    projectSelect.value = projectId;
+                }
+                
+                // فلترة المشاريع حسب العميل
+                if (clientId && projectSelect) {
+                    const projectOptions = projectSelect.querySelectorAll('option[data-client]');
+                    projectOptions.forEach(option => {
+                        if (option.value === '' || option.dataset.client === clientId) {
+                            option.style.display = 'block';
+                        } else {
+                            option.style.display = 'none';
+                        }
+                    });
+                }
+            }
+            
+            // تفعيل نوع الإدخال بالساعات
+            const hoursRadio = document.getElementById('entry_type_hours');
+            if (hoursRadio) {
+                hoursRadio.checked = true;
+                entryTypeRadios.forEach(radio => {
+                    if (radio.value === 'hours') {
+                        radio.dispatchEvent(new Event('change'));
+                    }
+                });
+            }
+            
+            // إزالة جميع العناصر الموجودة
+            const existingItems = invoiceItems.querySelectorAll('.invoice-item');
+            existingItems.forEach(item => item.remove());
+            
+            // إضافة كل جلسة غير مدفوعة كعنصر منفصل
+            unpaidSessions.forEach((sessionOption, index) => {
+                const hours = parseFloat(sessionOption.dataset.hours) || 0;
+                let hourlyRate = parseFloat(sessionOption.dataset.hourlyRate) || 0;
+                const description = sessionOption.dataset.description || '';
+                
+                // إذا لم يكن هناك سعر ساعة، استخدم سعر المشروع
+                if (!hourlyRate || hourlyRate === 0) {
+                    const projectOption = projectSelect ? projectSelect.querySelector(`option[value="${taskOption.dataset.project}"]`) : null;
+                    if (projectOption && projectOption.dataset.hourlyRate) {
+                        hourlyRate = parseFloat(projectOption.dataset.hourlyRate) || 0;
+                    }
+                }
+                
+                const newItem = document.createElement('div');
+                newItem.className = 'invoice-item row mb-3';
+                newItem.setAttribute('data-entry-type', 'hours');
+                
+                newItem.innerHTML = `
+                    <div class="col-md-4">
+                        <label class="form-label">الوصف</label>
+                        <input type="text" class="form-control" name="items[${index}][description]" 
+                               value="${description.replace(/"/g, '&quot;')}" placeholder="وصف العمل (اختياري)">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">عدد الساعات <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control item-hours" name="items[${index}][hours]" 
+                               value="${hours}" min="0" step="0.01" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">سعر الساعة <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control item-hourly-rate" name="items[${index}][hourly_rate]" 
+                               value="${hourlyRate}" min="0" step="0.01" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">المجموع</label>
+                        <input type="text" class="form-control item-total" readonly>
+                        <input type="hidden" class="form-control quantity" name="items[${index}][quantity]" value="1">
+                        <input type="hidden" class="form-control unit-price" name="items[${index}][unit_price]" value="0">
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-item">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                invoiceItems.appendChild(newItem);
+                addItemEventListeners(newItem);
+            });
+            
+            itemIndex = unpaidSessions.length;
+            
+            // حساب المجموع
+            calculateInvoiceTotal();
+            
+            // تفعيل أزرار الحذف
+            const removeBtns = document.querySelectorAll('.remove-item');
+            if (removeBtns.length > 1) {
+                removeBtns.forEach(btn => btn.disabled = false);
+            }
+            
+            // إظهار رسالة نجاح
+            alert(`تم إضافة ${unpaidSessions.length} جلسة غير مدفوعة إلى الفاتورة`);
+        });
+    }
+    
+    // فلترة الجلسات حسب المهمة المختارة
+    if (taskSelect && timeEntrySelect) {
+        taskSelect.addEventListener('change', function() {
+            const taskId = this.value;
+            const options = timeEntrySelect.querySelectorAll('option[data-task]');
+            
+            options.forEach(option => {
+                if (option.value === '' || option.dataset.task === taskId) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+            
+            // إعادة تعيين اختيار الجلسة
+            timeEntrySelect.value = '';
+        });
+    }
+    
+    // تحميل بيانات الجلسة
+    if (loadSessionBtn && timeEntrySelect) {
+        loadSessionBtn.addEventListener('click', function() {
+            const timeEntryId = timeEntrySelect.value;
+            if (!timeEntryId) {
+                alert('يرجى اختيار جلسة أولاً');
+                return;
+            }
+            
+            const selectedOption = timeEntrySelect.querySelector(`option[value="${timeEntryId}"]`);
+            if (!selectedOption) return;
+            
+            // ملء بيانات العميل والمشروع
+            const clientId = selectedOption.dataset.client;
+            const projectId = selectedOption.dataset.project;
+            
+            if (clientId && clientSelect) {
+                clientSelect.value = clientId;
+            }
+            if (projectId && projectSelect) {
+                projectSelect.value = projectId;
+            }
+            
+            // فلترة المشاريع حسب العميل
+            if (clientId && projectSelect) {
+                const projectOptions = projectSelect.querySelectorAll('option[data-client]');
+                projectOptions.forEach(option => {
+                    if (option.value === '' || option.dataset.client === clientId) {
+                        option.style.display = 'block';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+            }
+            
+            // الحصول على بيانات الجلسة
+            let hours = parseFloat(selectedOption.dataset.hours) || 0;
+            let hourlyRate = parseFloat(selectedOption.dataset.hourlyRate) || 0;
+            const description = selectedOption.dataset.description || '';
+            
+            // التحقق من وجود سعر الساعة - إذا لم يكن موجوداً، جرب الحصول من المشروع
+            if (!hourlyRate || hourlyRate === 0) {
+                const projectOption = projectSelect ? projectSelect.querySelector(`option[value="${projectId}"]`) : null;
+                if (projectOption && projectOption.dataset.hourlyRate) {
+                    const projectHourlyRate = parseFloat(projectOption.dataset.hourlyRate);
+                    if (projectHourlyRate && projectHourlyRate > 0) {
+                        hourlyRate = projectHourlyRate;
+                    }
+                }
+            }
+            
+            // تفعيل نوع الإدخال بالساعات
+            const hoursRadio = document.getElementById('entry_type_hours');
+            if (hoursRadio) {
+                hoursRadio.checked = true;
+                entryTypeRadios.forEach(radio => {
+                    if (radio.value === 'hours') {
+                        radio.dispatchEvent(new Event('change'));
+                    }
+                });
+            }
+            
+            // إزالة جميع العناصر الموجودة
+            const existingItems = invoiceItems.querySelectorAll('.invoice-item');
+            existingItems.forEach(item => item.remove());
+            
+            // إضافة عنصر جديد من الجلسة
+            const newItem = document.createElement('div');
+            newItem.className = 'invoice-item row mb-3';
+            newItem.setAttribute('data-entry-type', 'hours');
+            
+            newItem.innerHTML = `
+                <div class="col-md-4">
+                    <label class="form-label">الوصف</label>
+                    <input type="text" class="form-control" name="items[0][description]" 
+                           value="${description.replace(/"/g, '&quot;')}" placeholder="وصف العمل (اختياري)">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">عدد الساعات <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control item-hours" name="items[0][hours]" 
+                           value="${hours}" min="0" step="0.01" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">سعر الساعة <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control item-hourly-rate" name="items[0][hourly_rate]" 
+                           value="${hourlyRate}" min="0" step="0.01" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">المجموع</label>
+                    <input type="text" class="form-control item-total" readonly>
+                    <input type="hidden" class="form-control quantity" name="items[0][quantity]" value="1">
+                    <input type="hidden" class="form-control unit-price" name="items[0][unit_price]" value="0">
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-item" disabled>
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            
+            invoiceItems.appendChild(newItem);
+            itemIndex = 1;
+            
+            // إضافة مستمعي الأحداث للعنصر الجديد
+            addItemEventListeners(newItem);
+            
+            // حساب المجموع
+            calculateInvoiceTotal();
+            
+            // إذا لم يكن هناك سعر ساعة، طلب إدخاله
+            if (!hourlyRate || hourlyRate === 0) {
+                setTimeout(() => {
+                    alert('يرجى إدخال سعر الساعة');
+                    const hourlyRateInput = newItem.querySelector('.item-hourly-rate');
+                    if (hourlyRateInput) {
+                        hourlyRateInput.focus();
+                    }
+                }, 100);
+            }
+        });
+    }
 
     // فلترة المشاريع حسب العميل
     clientSelect.addEventListener('change', function() {

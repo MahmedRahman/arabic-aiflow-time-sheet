@@ -67,45 +67,18 @@
                         </div>
                     </div>
                     
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="project_id" class="form-label">المشروع (اختياري)</label>
-                            <select class="form-select @error('project_id') is-invalid @enderror" 
-                                    id="project_id" name="project_id">
-                                <option value="">اختر المشروع</option>
-                                @foreach($projects as $project)
-                                    <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }}>
-                                        {{ $project->name }} - {{ $project->client->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('project_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label for="user_id" class="form-label">المستخدم (اختياري)</label>
-                            <select class="form-select @error('user_id') is-invalid @enderror" 
-                                    id="user_id" name="user_id">
-                                <option value="">اختر المستخدم</option>
-                                @foreach($users as $user)
-                                    <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>
-                                        {{ $user->name }} ({{ $user->role === 'admin' ? 'مدير' : 'عميل' }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('user_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
-                    
                     <div class="mb-3">
-                        <label for="due_date" class="form-label">تاريخ الاستحقاق (اختياري)</label>
-                        <input type="date" class="form-control @error('due_date') is-invalid @enderror" 
-                               id="due_date" name="due_date" value="{{ old('due_date') }}">
-                        @error('due_date')
+                        <label for="project_id" class="form-label">المشروع (اختياري)</label>
+                        <select class="form-select @error('project_id') is-invalid @enderror" 
+                                id="project_id" name="project_id">
+                            <option value="">اختر المشروع</option>
+                            @foreach($projects as $project)
+                                <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                                    {{ $project->name }} - {{ $project->client->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('project_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>

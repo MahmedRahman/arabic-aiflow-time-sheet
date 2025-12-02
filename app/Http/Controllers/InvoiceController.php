@@ -8,6 +8,7 @@ use App\Models\InvoiceItem;
 use App\Models\Client;
 use App\Models\Project;
 use App\Models\TimeEntry;
+use App\Models\Task;
 use Illuminate\Support\Facades\DB;
 
 class InvoiceController extends Controller
@@ -25,8 +26,14 @@ class InvoiceController extends Controller
     {
         $clients = Client::all();
         $projects = Project::with('client')->get();
+        $tasks = Task::with(['project', 'project.client'])->get();
+        $timeEntries = TimeEntry::with(['task', 'project', 'project.client'])
+            ->whereNotNull('end_time')
+            ->where('is_active', false)
+            ->latest()
+            ->get();
         
-        return view('admin.invoices.create', compact('clients', 'projects'));
+        return view('admin.invoices.create', compact('clients', 'projects', 'tasks', 'timeEntries'));
     }
 
     public function store(Request $request)

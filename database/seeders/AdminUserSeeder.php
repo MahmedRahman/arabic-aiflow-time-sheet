@@ -19,13 +19,13 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'المدير',
                 'email' => 'admin@admin.com',
-                'password' => bcrypt('password'),
+                'password' => bcrypt('admin'),
                 'role' => 'admin',
             ]
         );
 
         $this->command->info('Admin user created successfully!');
-        $this->command->info('Email: admin@example.com');
-        $this->command->info('Password: password');
+        $this->command->info('Email: admin@admin.com');
+        $this->command->info('Password: admin');
     }
 }

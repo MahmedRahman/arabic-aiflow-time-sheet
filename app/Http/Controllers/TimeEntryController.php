@@ -123,8 +123,8 @@ class TimeEntryController extends Controller
     {
         $timeEntry->delete();
 
-        return redirect()->route('admin.time-entries.index')
-            ->with('success', 'تم حذف سجل الوقت بنجاح.');
+        return redirect()->back()
+            ->with('success', 'تم حذف الجلسة بنجاح.');
     }
 
     public function approve(TimeEntry $timeEntry)
@@ -141,5 +141,18 @@ class TimeEntryController extends Controller
         
         return redirect()->back()
             ->with('success', 'تم رفض سجل الوقت.');
+    }
+
+    public function togglePaidStatus(TimeEntry $timeEntry)
+    {
+        $timeEntry->update(['is_paid' => !$timeEntry->is_paid]);
+        
+        $message = $timeEntry->is_paid ? 'تم تحديد الجلسة كمدفوعة.' : 'تم تحديد الجلسة كغير مدفوعة.';
+        
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'is_paid' => $timeEntry->is_paid,
+        ]);
     }
 }

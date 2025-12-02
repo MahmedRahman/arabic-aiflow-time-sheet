@@ -42,9 +42,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     
     Route::resource('projects', ProjectController::class);
     Route::resource('tasks', TaskController::class);
+    Route::post('/tasks/{task}/start-tracking', [TaskController::class, 'startTracking'])->name('tasks.start-tracking');
+    Route::post('/tasks/{task}/stop-tracking', [TaskController::class, 'stopTracking'])->name('tasks.stop-tracking');
+    Route::get('/tasks/{task}/active-session', [TaskController::class, 'getActiveSession'])->name('tasks.active-session');
     Route::resource('time-entries', TimeEntryController::class);
     Route::patch('/time-entries/{timeEntry}/approve', [TimeEntryController::class, 'approve'])->name('time-entries.approve');
     Route::patch('/time-entries/{timeEntry}/reject', [TimeEntryController::class, 'reject'])->name('time-entries.reject');
+    Route::patch('/time-entries/{timeEntry}/toggle-paid', [TimeEntryController::class, 'togglePaidStatus'])->name('time-entries.toggle-paid');
     Route::resource('invoices', InvoiceController::class);
     Route::patch('/invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
     Route::patch('/invoices/{invoice}/mark-paid', [InvoiceController::class, 'markAsPaid'])->name('invoices.mark-paid');
