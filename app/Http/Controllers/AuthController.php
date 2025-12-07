@@ -26,7 +26,8 @@ class AuthController extends Controller
             $request->session()->regenerate();
             
             $user = Auth::user();
-            if ($user->isAdmin()) {
+            // السماح للمستخدمين الذين لديهم دور admin أو employee بالدخول إلى لوحة تحكم الأدمن
+            if ($user->isAdmin() || $user->isEmployee()) {
                 return redirect()->route('admin.dashboard');
             } else {
                 return redirect()->route('client.dashboard');
@@ -61,7 +62,7 @@ class AuthController extends Controller
 
         Auth::login($user);
 
-        if ($user->isAdmin()) {
+        if ($user->isAdmin() || $user->isEmployee()) {
             return redirect()->route('admin.dashboard');
         } else {
             return redirect()->route('client.dashboard');

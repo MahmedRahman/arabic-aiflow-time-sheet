@@ -324,6 +324,11 @@
                             <i class="fas fa-user-plus me-2"></i>إضافة عميل
                         </a>
                     </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ route('admin.users.create') }}" class="btn btn-secondary w-100">
+                            <i class="fas fa-user-tie me-2"></i>إضافة موظف
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

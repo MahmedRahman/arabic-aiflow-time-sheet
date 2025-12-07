@@ -8,6 +8,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TimeEntryController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\UserController;
 
 // الصفحة الرئيسية
 Route::get('/', function () {
@@ -30,6 +31,9 @@ Route::middleware('auth')->group(function () {
 // Admin Routes
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+    
+    // User management (Employees)
+    Route::resource('users', UserController::class);
     
     // Client management
     Route::get('/clients', [ClientController::class, 'adminIndex'])->name('clients.index');

@@ -20,6 +20,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
         'role',
     ];
@@ -59,11 +60,23 @@ class User extends Authenticatable
 
     public function isAdmin()
     {
-        return $this->role === 'admin';
+        return $this->role === 'admin' || $this->role === 'employee';
     }
 
     public function isClient()
     {
         return $this->role === 'client';
+    }
+
+    public function isEmployee()
+    {
+        return $this->role === 'employee';
+    }
+
+    public function projects()
+    {
+        return $this->belongsToMany(Project::class)
+            ->withPivot('hourly_rate')
+            ->withTimestamps();
     }
 }

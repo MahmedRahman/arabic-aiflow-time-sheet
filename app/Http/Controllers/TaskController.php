@@ -56,7 +56,7 @@ class TaskController extends Controller
     public function create()
     {
         $projects = Project::all();
-        $users = User::all();
+        $users = User::where('role', 'employee')->get();
         return view('admin.tasks.create', compact('projects', 'users'));
     }
 
@@ -96,7 +96,7 @@ class TaskController extends Controller
     public function edit(Task $task)
     {
         $projects = Project::all();
-        $users = User::all();
+        $users = User::where('role', 'employee')->get();
         return view('admin.tasks.edit', compact('task', 'projects', 'users'));
     }
 

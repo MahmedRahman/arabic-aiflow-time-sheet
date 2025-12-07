@@ -415,10 +415,14 @@
                         <small class="text-white-50 d-block mt-1" style="font-size: 0.75rem;">Time Sheet System</small>
                     </div>
                     <nav class="nav flex-column">
-                        @if(auth()->user()->isAdmin())
+                        @if(auth()->user()->isAdmin() || auth()->user()->isEmployee())
                             <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
                                 <i class="fas fa-tachometer-alt me-2"></i>
                                 لوحة التحكم
+                            </a>
+                            <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
+                                <i class="fas fa-user-tie me-2"></i>
+                                الموظفين
                             </a>
                             <a class="nav-link {{ request()->routeIs('admin.clients.*') ? 'active' : '' }}" href="{{ route('admin.clients.index') }}">
                                 <i class="fas fa-users me-2"></i>
@@ -476,7 +480,13 @@
                             <div class="flex-grow-1">
                                 <div class="fw-semibold">{{ auth()->user()->name }}</div>
                                 <small class="text-white-50 d-block" style="font-size: 0.75rem;">
-                                    {{ auth()->user()->role === 'admin' ? 'مدير' : 'عميل' }}
+                                    @if(auth()->user()->role === 'admin')
+                                        ادمن
+                                    @elseif(auth()->user()->role === 'employee')
+                                        موظف
+                                    @else
+                                        عميل
+                                    @endif
                                 </small>
                             </div>
                         </div>

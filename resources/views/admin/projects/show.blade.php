@@ -46,12 +46,6 @@
                                 <span class="badge bg-warning">متوقف</span>
                             @endif
                         </p>
-                        @if($project->start_date)
-                            <p><strong>تاريخ البداية:</strong> {{ $project->start_date->format('Y-m-d') }}</p>
-                        @endif
-                        @if($project->end_date)
-                            <p><strong>تاريخ النهاية:</strong> {{ $project->end_date->format('Y-m-d') }}</p>
-                        @endif
                     </div>
                 </div>
                 
@@ -190,6 +184,52 @@
                         <small class="text-muted">عدد سجلات الوقت</small>
                     </div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- الموظفين في المشروع -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-user-tie me-2"></i>
+                    الموظفين في المشروع
+                </h5>
+            </div>
+            <div class="card-body">
+                @if($project->users->count() > 0)
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>الموظف</th>
+                                    <th>سعر الساعة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($project->users as $user)
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar bg-primary text-white rounded-circle me-2" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem;">
+                                                {{ substr($user->name, 0, 1) }}
+                                            </div>
+                                            <span>{{ $user->name }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">{{ number_format($user->pivot->hourly_rate, 2) }} ج.م</strong>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-user-tie fa-2x mb-2"></i>
+                        <p class="mb-0">لا يوجد موظفين في هذا المشروع</p>
+                    </div>
+                @endif
             </div>
         </div>
         

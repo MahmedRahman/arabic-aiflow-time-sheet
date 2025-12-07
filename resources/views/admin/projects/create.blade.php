@@ -56,9 +56,10 @@
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="hourly_rate" class="form-label">سعر الساعة (ج.م) <span class="text-danger">*</span></label>
+                            <label for="hourly_rate" class="form-label">سعر الساعة الافتراضي (ج.م)</label>
                             <input type="number" step="0.01" min="0" class="form-control @error('hourly_rate') is-invalid @enderror" 
-                                   id="hourly_rate" name="hourly_rate" value="{{ old('hourly_rate') }}" required>
+                                   id="hourly_rate" name="hourly_rate" value="{{ old('hourly_rate') }}">
+                            <small class="form-text text-muted">سعر الساعة الافتراضي للمشروع (اختياري)</small>
                             @error('hourly_rate')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -79,24 +80,35 @@
                         </div>
                     </div>
                     
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="start_date" class="form-label">تاريخ البداية</label>
-                            <input type="date" class="form-control @error('start_date') is-invalid @enderror" 
-                                   id="start_date" name="start_date" value="{{ old('start_date') }}">
-                            @error('start_date')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                    <!-- قسم الموظفين -->
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="fas fa-user-tie me-2"></i>الموظفين في المشروع
+                        </label>
+                        <div id="users-container">
+                            <div class="user-item row mb-3">
+                                <div class="col-md-6">
+                                    <select class="form-select user-select" name="users[]">
+                                        <option value="">اختر الموظف</option>
+                                        @foreach($users as $user)
+                                            <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-5">
+                                    <input type="number" step="0.01" min="0" class="form-control hourly-rate-input" 
+                                           name="hourly_rates[]" placeholder="سعر الساعة (ج.م)">
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-user" style="display: none;">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label for="end_date" class="form-label">تاريخ النهاية</label>
-                            <input type="date" class="form-control @error('end_date') is-invalid @enderror" 
-                                   id="end_date" name="end_date" value="{{ old('end_date') }}">
-                            @error('end_date')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="add-user-btn">
+                            <i class="fas fa-plus me-1"></i>إضافة موظف آخر
+                        </button>
                     </div>
                     
                     <div class="d-flex justify-content-end">
@@ -129,4 +141,60 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const usersContainer = document.getElementById('users-container');
+    const addUserBtn = document.getElementById('add-user-btn');
+    const users = @json($users);
+    
+    // إضافة موظف جديد
+    addUserBtn.addEventListener('click', function() {
+        const userItem = document.createElement('div');
+        userItem.className = 'user-item row mb-3';
+        userItem.innerHTML = `
+            <div class="col-md-6">
+                <select class="form-select user-select" name="users[]">
+                    <option value="">اختر الموظف</option>
+                    ${users.map(user => `<option value="${user.id}">${user.name}</option>`).join('')}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <input type="number" step="0.01" min="0" class="form-control hourly-rate-input" 
+                       name="hourly_rates[]" placeholder="سعر الساعة (ج.م)">
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-user">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        usersContainer.appendChild(userItem);
+        updateRemoveButtons();
+    });
+    
+    // حذف موظف
+    usersContainer.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-user')) {
+            e.target.closest('.user-item').remove();
+            updateRemoveButtons();
+        }
+    });
+    
+    // تحديث أزرار الحذف
+    function updateRemoveButtons() {
+        const userItems = usersContainer.querySelectorAll('.user-item');
+        userItems.forEach((item, index) => {
+            const removeBtn = item.querySelector('.remove-user');
+            if (userItems.length > 1) {
+                removeBtn.style.display = 'block';
+            } else {
+                removeBtn.style.display = 'none';
+            }
+        });
+    }
+    
+    updateRemoveButtons();
+});
+</script>
 @endsection

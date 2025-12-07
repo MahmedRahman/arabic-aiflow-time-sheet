@@ -47,7 +47,7 @@
                             <p><strong>المستخدم:</strong> {{ $task->user->name }}</p>
                         @endif
                         @if($task->due_date)
-                            <p><strong>تاريخ الاستحقاق:</strong> {{ $task->due_date->format('Y-m-d') }}</p>
+                            <p><strong>التاريخ المتوقع للانتهاء:</strong> {{ $task->due_date->format('Y-m-d') }}</p>
                         @endif
                     </div>
                 </div>

@@ -575,7 +575,7 @@
                         @if($task->due_date)
                             <div class="info-item d-flex align-items-center">
                                 <i class="fas fa-calendar-alt"></i>
-                                <span class="text-dark">تاريخ الاستحقاق: <strong>{{ $task->due_date->format('Y-m-d') }}</strong></span>
+                                <span class="text-dark">التاريخ المتوقع للانتهاء: <strong>{{ $task->due_date->format('Y-m-d') }}</strong></span>
                             </div>
                         @endif
                     </div>

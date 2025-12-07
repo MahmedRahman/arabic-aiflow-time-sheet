@@ -15,7 +15,10 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!auth()->check() || !auth()->user()->isAdmin()) {
+        $user = auth()->user();
+        
+        // السماح للمستخدمين الذين لديهم دور admin أو employee
+        if (!auth()->check() || (!$user->isAdmin() && !$user->isEmployee())) {
             return redirect()->route('login')->with('error', 'ليس لديك صلاحية للوصول إلى هذه الصفحة.');
         }
         
